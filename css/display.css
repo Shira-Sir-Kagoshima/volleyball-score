@@ -7,7 +7,7 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 96px;
+  height: fit-content;
   background: transparent;
   overflow: hidden;
   color: #fff;
@@ -15,23 +15,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-html:has(.board.has-header),
-html:has(.board.has-header) body {
-  height: 118px;
-}
-
 .board {
   width: 100%;
-  height: 100%;
+  height: fit-content;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 0;
   overflow: hidden;
-  background: var(--board-bg, rgba(32, 36, 42, 0.88));
+  background: var(--board-bg, rgba(8, 10, 14, 0.94));
   color: var(--ink, #f4f6f8);
   box-shadow: var(--board-edge, inset 0 0 0 1px rgba(255, 255, 255, 0.14));
-  container-type: size;
 }
 
 .top {
@@ -68,7 +63,7 @@ html:has(.board.has-header) body {
   justify-content: center;
 }
 
-.top-end {
+.top-comment {
   justify-content: flex-end;
 }
 
@@ -84,13 +79,13 @@ html:has(.board.has-header) body {
 }
 
 .main {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  height: auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto minmax(5.2em, auto) auto auto minmax(0, 1fr);
   align-items: center;
   column-gap: 6px;
-  padding: 1px 6px;
+  padding: 0 6px 12px;
 }
 
 .name-slot {
@@ -119,7 +114,7 @@ html:has(.board.has-header) body {
 .name {
   margin: 0;
   width: max-content;
-  font-size: 100px;
+  font-size: 83px;
   font-weight: 700;
   line-height: 0.92;
   letter-spacing: 0;
@@ -144,7 +139,7 @@ html:has(.board.has-header) body {
 .score {
   min-width: 1.5ch;
   font-family: Oswald, Impact, "Arial Narrow", sans-serif;
-  font-size: 100px;
+  font-size: 83px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 0.92;
@@ -154,7 +149,7 @@ html:has(.board.has-header) body {
 
 .mid {
   min-width: 6.4em;
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -218,35 +213,6 @@ html:has(.board.has-header) body {
 
 .hist-dash {
   text-align: center;
-}
-
-.lead {
-  width: 100%;
-  height: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-}
-
-.lead:empty {
-  display: none;
-}
-
-.tri {
-  width: 0;
-  height: 0;
-  border-style: solid;
-}
-
-.tri-a {
-  border-width: 0.38em 0.62em 0.38em 0;
-  border-color: transparent var(--lead, #fff) transparent transparent;
-}
-
-.tri-b {
-  border-width: 0.38em 0 0.38em 0.62em;
-  border-color: transparent transparent transparent var(--lead, #fff);
 }
 
 @keyframes pop {

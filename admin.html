@@ -35,6 +35,28 @@
         回戦
         <input id="roundName" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" value="" disabled>
       </label>
+      <h2>表示コメント</h2>
+      <p class="hint">チェックした方のコメントが、得点板の右上にすぐ表示されます。各20文字までです。</p>
+      <div class="comment-row">
+        <label class="comment-radio">
+          <input type="radio" name="activeComment" id="activeCommentA" value="A" checked disabled>
+          <span>表示</span>
+        </label>
+        <label>
+          コメントA
+          <input id="commentA" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" value="" disabled>
+        </label>
+      </div>
+      <div class="comment-row">
+        <label class="comment-radio">
+          <input type="radio" name="activeComment" id="activeCommentB" value="B" disabled>
+          <span>表示</span>
+        </label>
+        <label>
+          コメントB
+          <input id="commentB" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" value="" disabled>
+        </label>
+      </div>
     </section>
 
     <section class="panel">

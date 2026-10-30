@@ -23,6 +23,7 @@ export const LIMITS = {
   tournamentName: 48,
   roundName: 20,
   teamName: 20,
+  comment: 20,
   history: 10,
 };
 
@@ -34,7 +35,7 @@ export const FALLBACK_NAMES = {
 export const BOARD_THEMES = {
   dark: {
     label: "ダークグレー",
-    background: "rgba(32, 36, 42, 0.88)",
+    background: "rgba(8, 10, 14, 0.94)",
     ink: "#f4f6f8",
     line: "rgba(255, 255, 255, 0.22)",
     edge: "inset 0 0 0 1px rgba(255, 255, 255, 0.14)",
@@ -163,6 +164,9 @@ export function createDefaultState() {
   return {
     tournamentName: "",
     roundName: "",
+    commentA: "",
+    commentB: "",
+    activeComment: "A",
     teamA: { name: FALLBACK_NAMES.teamA, score: 0, serve: false },
     teamB: { name: FALLBACK_NAMES.teamB, score: 0, serve: false },
     setHistory: [],
@@ -180,6 +184,9 @@ export function normalizeState(raw) {
 
   base.tournamentName = cleanText(raw.tournamentName, LIMITS.tournamentName);
   base.roundName = cleanText(raw.roundName, LIMITS.roundName);
+  base.commentA = cleanText(raw.commentA, LIMITS.comment);
+  base.commentB = cleanText(raw.commentB, LIMITS.comment);
+  base.activeComment = raw.activeComment === "B" ? "B" : "A";
   base.setHistory = normalizeHistory(raw.setHistory);
   base.currentSet = base.setHistory.length + 1;
 

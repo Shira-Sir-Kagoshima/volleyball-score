@@ -30,6 +30,10 @@ const ui = {
   error: document.getElementById("error"),
   tournamentName: document.getElementById("tournamentName"),
   roundName: document.getElementById("roundName"),
+  commentA: document.getElementById("commentA"),
+  commentB: document.getElementById("commentB"),
+  activeCommentA: document.getElementById("activeCommentA"),
+  activeCommentB: document.getElementById("activeCommentB"),
   nameA: document.getElementById("nameA"),
   nameB: document.getElementById("nameB"),
   scoreA: document.getElementById("scoreA"),
@@ -45,6 +49,8 @@ const ui = {
 const textInputs = {
   tournamentName: ui.tournamentName,
   roundName: ui.roundName,
+  commentA: ui.commentA,
+  commentB: ui.commentB,
   teamA: ui.nameA,
   teamB: ui.nameB,
 };
@@ -52,6 +58,8 @@ const textInputs = {
 const textTimers = {
   tournamentName: 0,
   roundName: 0,
+  commentA: 0,
+  commentB: 0,
   teamA: 0,
   teamB: 0,
 };
@@ -59,6 +67,8 @@ const textTimers = {
 const textDirty = {
   tournamentName: false,
   roundName: false,
+  commentA: false,
+  commentB: false,
   teamA: false,
   teamB: false,
 };
@@ -66,6 +76,8 @@ const textDirty = {
 const textLimits = {
   tournamentName: LIMITS.tournamentName,
   roundName: LIMITS.roundName,
+  commentA: LIMITS.comment,
+  commentB: LIMITS.comment,
   teamA: LIMITS.teamName,
   teamB: LIMITS.teamName,
 };
@@ -189,6 +201,10 @@ function render() {
   ui.serveB.setAttribute("aria-pressed", String(serveB));
   ui.serveNone.setAttribute("aria-pressed", String(!serveA && !serveB));
 
+  const activeComment = state.activeComment === "B" ? "B" : "A";
+  ui.activeCommentA.checked = activeComment === "A";
+  ui.activeCommentB.checked = activeComment === "B";
+
   const wins = countSetWins(state.setHistory);
   ui.currentSetLabel.textContent = `第${state.currentSet}セット`;
   ui.setCount.textContent = `セット ${wins.teamA} - ${wins.teamB}`;
@@ -254,6 +270,9 @@ function payloadFrom(snapshot) {
   return {
     tournamentName: cleanText(snapshot.tournamentName, LIMITS.tournamentName),
     roundName: cleanText(snapshot.roundName, LIMITS.roundName),
+    commentA: cleanText(snapshot.commentA, LIMITS.comment),
+    commentB: cleanText(snapshot.commentB, LIMITS.comment),
+    activeComment: snapshot.activeComment === "B" ? "B" : "A",
     teamA: {
       name: cleanText(snapshot.teamA.name, LIMITS.teamName),
       score: clampCount(snapshot.teamA.score),
@@ -348,6 +367,15 @@ function commitHistory() {
   historyDirty = false;
 }
 
+function setActiveComment(which) {
+  if (!hydrated) return;
+  const next = which === "B" ? "B" : "A";
+  if (state.activeComment === next) return;
+  state.activeComment = next;
+  render();
+  persist();
+}
+
 function setServe(which) {
   if (!hydrated) return;
   applyServe(which);
@@ -422,6 +450,12 @@ document.getElementById("scoreB-minus").addEventListener("click", () => bump("te
 ui.serveA.addEventListener("click", () => setServe("teamA"));
 ui.serveNone.addEventListener("click", () => setServe("none"));
 ui.serveB.addEventListener("click", () => setServe("teamB"));
+ui.activeCommentA.addEventListener("change", () => {
+  if (ui.activeCommentA.checked) setActiveComment("A");
+});
+ui.activeCommentB.addEventListener("change", () => {
+  if (ui.activeCommentB.checked) setActiveComment("B");
+});
 document.getElementById("confirmSet").addEventListener("click", confirmSet);
 document.getElementById("resetAll").addEventListener("click", resetAll);
 document.querySelector(".theme-panel").addEventListener("click", (event) => {
@@ -460,6 +494,8 @@ ui.historyList.addEventListener("click", (event) => {
 const composing = {
   tournamentName: false,
   roundName: false,
+  commentA: false,
+  commentB: false,
   teamA: false,
   teamB: false,
 };

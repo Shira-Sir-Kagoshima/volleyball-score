@@ -18,6 +18,7 @@ const els = {
   board: document.getElementById("board"),
   tournamentName: document.getElementById("tournamentName"),
   roundName: document.getElementById("roundName"),
+  comment: document.getElementById("comment"),
   nameA: document.getElementById("nameA"),
   nameB: document.getElementById("nameB"),
   scoreA: document.getElementById("scoreA"),
@@ -26,8 +27,6 @@ const els = {
   serveB: document.getElementById("serveB"),
   history: document.getElementById("history"),
   setLabel: document.getElementById("setLabel"),
-  lead: document.getElementById("lead"),
-  mid: document.getElementById("mid"),
 };
 
 let firstPaint = true;
@@ -69,18 +68,6 @@ function renderHistory(history) {
   }
 }
 
-function renderLead(history) {
-  const wins = countSetWins(history);
-  els.lead.replaceChildren();
-  if (wins.teamA === wins.teamB) return;
-
-  const tri = document.createElement("span");
-  tri.className = wins.teamA > wins.teamB ? "tri tri-a" : "tri tri-b";
-  tri.setAttribute("aria-hidden", "true");
-  els.lead.style.setProperty("--lead", wins.teamA > wins.teamB ? "var(--color-a)" : "var(--color-b)");
-  els.lead.append(tri);
-}
-
 function applyTheme(state) {
   const board = BOARD_THEMES[state.boardBgColor] || BOARD_THEMES.dark;
   const colorA = TEAM_A_COLORS[state.teamAColor] || TEAM_A_COLORS.white;
@@ -107,7 +94,12 @@ function render(raw) {
     els.tournamentName.textContent = state.tournamentName;
   }
   if (els.roundName.textContent !== state.roundName) els.roundName.textContent = state.roundName;
-  els.board.classList.toggle("has-header", state.tournamentName !== "" || state.roundName !== "");
+  const comment = state.activeComment === "B" ? state.commentB : state.commentA;
+  if (els.comment.textContent !== comment) els.comment.textContent = comment;
+  els.board.classList.toggle(
+    "has-header",
+    state.tournamentName !== "" || state.roundName !== "" || comment !== ""
+  );
   if (els.nameA.textContent !== nameA) els.nameA.textContent = nameA;
   if (els.nameB.textContent !== nameB) els.nameB.textContent = nameB;
 
@@ -117,7 +109,6 @@ function render(raw) {
   setServe(els.serveA, state.teamA.serve, nameA);
   setServe(els.serveB, state.teamB.serve, nameB);
   renderHistory(state.setHistory);
-  renderLead(state.setHistory);
   const setLabel = `SET ${state.currentSet}`;
   if (els.setLabel.textContent !== setLabel) els.setLabel.textContent = setLabel;
 
@@ -125,7 +116,7 @@ function render(raw) {
   const serve = state.teamA.serve ? `${nameA}のサーブ` : state.teamB.serve ? `${nameB}のサーブ` : "サーブ権なし";
   els.board.setAttribute(
     "aria-label",
-    `${state.tournamentName} ${state.roundName} ${nameA} ${state.teamA.score}、${nameB} ${state.teamB.score}。${setLabel}。セット ${wins.teamA} 対 ${wins.teamB}。${serve}`
+    `${state.tournamentName} ${state.roundName} ${comment} ${nameA} ${state.teamA.score}、${nameB} ${state.teamB.score}。${setLabel}。セット ${wins.teamA} 対 ${wins.teamB}。${serve}`
   );
   firstPaint = false;
   fitTexts();
@@ -154,6 +145,7 @@ function fitText(el) {
 function fitTexts() {
   fitText(els.tournamentName);
   fitText(els.roundName);
+  fitText(els.comment);
   fitText(els.nameA);
   fitText(els.nameB);
 }

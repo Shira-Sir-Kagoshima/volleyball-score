@@ -166,6 +166,33 @@ input:focus {
   border-color: #ea580c;
 }
 
+.comment-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+  margin-top: 8px;
+}
+
+.comment-radio {
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin: 0 0 8px;
+  min-height: 44px;
+  color: #334155;
+  font-size: 11px;
+}
+
+.comment-radio input {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  padding: 0;
+  accent-color: #0f172a;
+}
+
 .serve-switch {
   display: grid;
   grid-template-columns: 1fr 0.7fr 1fr;
