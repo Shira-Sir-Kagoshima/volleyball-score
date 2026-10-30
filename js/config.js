@@ -139,6 +139,19 @@ export function cleanText(value, max) {
   return String(value ?? "").trim().slice(0, max);
 }
 
+const LOGO_URL_MAX = 2000;
+const LOGO_DATA_MAX = 180000;
+
+export function normalizeLogo(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  if (/^https?:\/\/\S+$/i.test(text)) return text.length <= LOGO_URL_MAX ? text : "";
+  if (/^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+$/i.test(text)) {
+    return text.length <= LOGO_DATA_MAX ? text : "";
+  }
+  return "";
+}
+
 export function normalizeHistory(raw) {
   const list = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? Object.values(raw) : [];
   return list
@@ -167,8 +180,8 @@ export function createDefaultState() {
     commentA: "",
     commentB: "",
     activeComment: "A",
-    teamA: { name: FALLBACK_NAMES.teamA, score: 0, serve: false },
-    teamB: { name: FALLBACK_NAMES.teamB, score: 0, serve: false },
+    teamA: { name: FALLBACK_NAMES.teamA, score: 0, serve: false, logo: "" },
+    teamB: { name: FALLBACK_NAMES.teamB, score: 0, serve: false, logo: "" },
     setHistory: [],
     currentSet: 1,
     boardBgColor: DEFAULT_THEME.boardBgColor,
@@ -196,6 +209,7 @@ export function normalizeState(raw) {
       name: cleanText(src.name, LIMITS.teamName),
       score: clampCount(src.score),
       serve: src.serve === true,
+      logo: normalizeLogo(src.logo),
     };
   }
 

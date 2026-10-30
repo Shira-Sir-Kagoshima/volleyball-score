@@ -265,6 +265,83 @@ input:focus {
   font-size: 13px;
 }
 
+.logo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.logo-caption {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.logo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-preview {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  border: 1px solid #d5dbe3;
+  border-radius: 8px;
+  background: #f1f5f9;
+}
+
+.logo-preview[hidden] {
+  display: none;
+}
+
+.logo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.file-btn,
+.btn-logo-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.file-btn {
+  background: var(--team);
+  color: #fff;
+}
+
+.file-btn:has(input:disabled),
+.btn-logo-clear:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.btn-logo-clear {
+  background: #e8edf3;
+  color: #334155;
+}
+
+.logo-field label {
+  margin: 0;
+}
+
 .score-value {
   margin: 8px 0;
   padding: 8px 0;

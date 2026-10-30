@@ -21,6 +21,8 @@ const els = {
   comment: document.getElementById("comment"),
   nameA: document.getElementById("nameA"),
   nameB: document.getElementById("nameB"),
+  logoA: document.getElementById("logoA"),
+  logoB: document.getElementById("logoB"),
   scoreA: document.getElementById("scoreA"),
   scoreB: document.getElementById("scoreB"),
   serveA: document.getElementById("serveA"),
@@ -68,6 +70,33 @@ function renderHistory(history) {
   }
 }
 
+function paintLogo(img, src, label) {
+  const next = src || "";
+  if (next) img.alt = `${label}のロゴ`;
+  if ((img.dataset.src || "") === next) return;
+  img.dataset.src = next;
+  if (!next) {
+    img.removeAttribute("src");
+    img.hidden = true;
+    img.alt = "";
+    return;
+  }
+  img.hidden = false;
+  img.src = next;
+}
+
+function bindLogo(img) {
+  img.addEventListener("load", () => {
+    if (img.getAttribute("src") === img.dataset.src) img.hidden = false;
+    fitTexts();
+  });
+  img.addEventListener("error", () => {
+    if (!img.dataset.src || img.getAttribute("src") !== img.dataset.src) return;
+    img.hidden = true;
+    fitTexts();
+  });
+}
+
 function applyTheme(state) {
   const board = BOARD_THEMES[state.boardBgColor] || BOARD_THEMES.dark;
   const colorA = TEAM_A_COLORS[state.teamAColor] || TEAM_A_COLORS.white;
@@ -102,6 +131,8 @@ function render(raw) {
   );
   if (els.nameA.textContent !== nameA) els.nameA.textContent = nameA;
   if (els.nameB.textContent !== nameB) els.nameB.textContent = nameB;
+  paintLogo(els.logoA, state.teamA.logo, nameA);
+  paintLogo(els.logoB, state.teamB.logo, nameB);
 
   applyTheme(state);
   paintValue(els.scoreA, state.teamA.score);
@@ -131,9 +162,16 @@ function fitText(el) {
   if (!Number.isFinite(max) || el.textContent === "") return;
 
   const slotStyle = getComputedStyle(slot);
+  let reserved = 0;
+  const logo = slot.querySelector(".logo");
+  if (logo && !logo.hidden && logo.getAttribute("src")) {
+    const gap = parseFloat(slotStyle.columnGap || slotStyle.gap) || 0;
+    reserved = logo.getBoundingClientRect().width + gap;
+  }
   const available = slot.clientWidth
     - parseFloat(slotStyle.paddingLeft)
-    - parseFloat(slotStyle.paddingRight);
+    - parseFloat(slotStyle.paddingRight)
+    - reserved;
   let size = max;
   el.style.fontSize = `${size}px`;
   while (size > 10 && el.scrollWidth > available + 1) {
@@ -150,10 +188,15 @@ function fitTexts() {
   fitText(els.nameB);
 }
 
+bindLogo(els.logoA);
+bindLogo(els.logoB);
+
 new ResizeObserver(() => fitTexts()).observe(els.board);
 window.addEventListener("resize", fitTexts);
 if (document.fonts?.ready) document.fonts.ready.then(fitTexts);
 
-onValue(ref(db, SCORE_PATH), (snap) => {
-  render(snap.val() || {});
-});
+if (location.protocol !== "file:") {
+  onValue(ref(db, SCORE_PATH), (snap) => {
+    render(snap.val() || {});
+  });
+}

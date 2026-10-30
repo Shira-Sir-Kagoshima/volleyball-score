@@ -23,7 +23,6 @@
       </p>
     </header>
 
-    <p class="banner" id="fileBanner" hidden>ファイルを直接開いているため Firebase に接続できません。このフォルダをローカルサーバーかホスティングで公開してから開いてください。</p>
     <p class="error" id="error" hidden></p>
 
     <section class="panel">
@@ -76,6 +75,19 @@
           チーム名
           <input id="nameA" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="チームA" disabled>
         </label>
+        <div class="logo-field">
+          <p class="logo-caption">チームロゴ</p>
+          <div class="logo-head">
+            <img id="logoPreviewA" class="logo-preview" alt="" hidden>
+            <div class="logo-actions">
+              <label class="file-btn">
+                画像を選択
+                <input id="logoFileA" type="file" accept="image/*" aria-label="チームAのロゴ画像" hidden disabled>
+              </label>
+              <button type="button" id="logoClearA" class="btn-logo-clear" disabled>ロゴを消去</button>
+            </div>
+          </div>
+        </div>
         <div class="score-value" id="scoreA">0</div>
         <button type="button" id="scoreA-minus" class="btn btn-minus" aria-label="チームAの得点を1減らす" disabled>−1点</button>
         <button type="button" id="scoreA-plus" class="btn btn-plus btn-xl" aria-label="チームAの得点を1増やす" disabled>+1点</button>
@@ -87,6 +99,19 @@
           チーム名
           <input id="nameB" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="チームB" disabled>
         </label>
+        <div class="logo-field">
+          <p class="logo-caption">チームロゴ</p>
+          <div class="logo-head">
+            <img id="logoPreviewB" class="logo-preview" alt="" hidden>
+            <div class="logo-actions">
+              <label class="file-btn">
+                画像を選択
+                <input id="logoFileB" type="file" accept="image/*" aria-label="チームBのロゴ画像" hidden disabled>
+              </label>
+              <button type="button" id="logoClearB" class="btn-logo-clear" disabled>ロゴを消去</button>
+            </div>
+          </div>
+        </div>
         <div class="score-value" id="scoreB">0</div>
         <button type="button" id="scoreB-minus" class="btn btn-minus" aria-label="チームBの得点を1減らす" disabled>−1点</button>
         <button type="button" id="scoreB-plus" class="btn btn-plus btn-xl" aria-label="チームBの得点を1増やす" disabled>+1点</button>
@@ -107,7 +132,7 @@
 
     <section class="danger-zone">
       <button type="button" id="resetAll" class="btn btn-danger" disabled>すべてリセット</button>
-      <p class="hint">得点、セット履歴、サーブ権を消します。大会名・回戦名・チーム名は残ります。</p>
+      <p class="hint">得点、セット履歴、サーブ権を消します。大会名・回戦名・チーム名・ロゴは残ります。</p>
     </section>
 
     <section class="panel theme-panel">
@@ -146,11 +171,6 @@
       <a href="index.html" target="_blank" rel="noopener">表示ページを別タブで開く</a>
     </footer>
   </div>
-  <script>
-    if (location.protocol === "file:") {
-      document.getElementById("fileBanner").hidden = false;
-    }
-  </script>
   <script type="module" src="js/admin.js"></script>
 </body>
 </html>

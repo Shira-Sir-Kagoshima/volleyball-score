@@ -16,6 +16,7 @@ import {
   countSetWins,
   createDefaultState,
   firebaseConfig,
+  normalizeLogo,
   normalizeState,
   normalizeThemeValue,
 } from "./config.js";
@@ -36,6 +37,12 @@ const ui = {
   activeCommentB: document.getElementById("activeCommentB"),
   nameA: document.getElementById("nameA"),
   nameB: document.getElementById("nameB"),
+  logoPreviewA: document.getElementById("logoPreviewA"),
+  logoPreviewB: document.getElementById("logoPreviewB"),
+  logoFileA: document.getElementById("logoFileA"),
+  logoFileB: document.getElementById("logoFileB"),
+  logoClearA: document.getElementById("logoClearA"),
+  logoClearB: document.getElementById("logoClearB"),
   scoreA: document.getElementById("scoreA"),
   scoreB: document.getElementById("scoreB"),
   serveA: document.getElementById("serveA"),
@@ -99,6 +106,7 @@ function formatError(error) {
 }
 
 function showError(message) {
+  if (location.protocol === "file:") return;
   ui.error.hidden = false;
   ui.error.textContent = message;
 }
@@ -205,11 +213,29 @@ function render() {
   ui.activeCommentA.checked = activeComment === "A";
   ui.activeCommentB.checked = activeComment === "B";
 
+  renderLogos();
+
   const wins = countSetWins(state.setHistory);
   ui.currentSetLabel.textContent = `第${state.currentSet}セット`;
   ui.setCount.textContent = `セット ${wins.teamA} - ${wins.teamB}`;
   renderHistoryEditor();
   renderTheme();
+}
+
+function renderLogos() {
+  for (const side of ["A", "B"]) {
+    const logo = state[side === "A" ? "teamA" : "teamB"].logo || "";
+    const preview = ui[`logoPreview${side}`];
+    const clearButton = ui[`logoClear${side}`];
+    if (logo) {
+      if (preview.getAttribute("src") !== logo) preview.src = logo;
+      preview.hidden = false;
+    } else {
+      preview.removeAttribute("src");
+      preview.hidden = true;
+    }
+    clearButton.disabled = !hydrated || logo === "";
+  }
 }
 
 function themeSwatch(key, value) {
@@ -277,11 +303,13 @@ function payloadFrom(snapshot) {
       name: cleanText(snapshot.teamA.name, LIMITS.teamName),
       score: clampCount(snapshot.teamA.score),
       serve: serveA,
+      logo: normalizeLogo(snapshot.teamA.logo),
     },
     teamB: {
       name: cleanText(snapshot.teamB.name, LIMITS.teamName),
       score: clampCount(snapshot.teamB.score),
       serve: serveB,
+      logo: normalizeLogo(snapshot.teamB.logo),
     },
     setHistory: history,
     currentSet: history.length + 1,
@@ -417,7 +445,7 @@ function confirmSet() {
 
 function resetAll() {
   if (!hydrated) return;
-  const ok = window.confirm("得点、セット履歴、サーブ権をリセットします。\n大会名・回戦名・チーム名は残ります。");
+  const ok = window.confirm("得点、セット履歴、サーブ権をリセットします。\n大会名・回戦名・チーム名・ロゴは残ります。");
   if (!ok) return;
 
   commitHistory();
@@ -456,6 +484,95 @@ ui.activeCommentA.addEventListener("change", () => {
 ui.activeCommentB.addEventListener("change", () => {
   if (ui.activeCommentB.checked) setActiveComment("B");
 });
+function readLogoFile(file) {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    return Promise.reject(new Error("画像ファイルを選んでください。"));
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    return Promise.reject(new Error("画像が大きすぎます。8MB以下のファイルを選んでください。"));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("画像を読み込めませんでした。"));
+    reader.onload = () => {
+      const data = String(reader.result || "");
+      const direct = normalizeLogo(data);
+      if (direct) {
+        resolve(direct);
+        return;
+      }
+      shrinkDataUrl(data).then((logo) => {
+        if (!logo) reject(new Error("画像が大きすぎます。より小さい画像を選んでください。"));
+        else resolve(logo);
+      }).catch(() => reject(new Error("画像を読み込めませんでした。")));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function shrinkDataUrl(data) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(shrinkLogo(img));
+    img.onerror = () => reject(new Error("画像を読み込めませんでした。"));
+    img.src = data;
+  });
+}
+
+function shrinkLogo(img) {
+  for (const max of [160, 112, 80]) {
+    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const width = Math.max(1, Math.round(img.naturalWidth * scale));
+    const height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    const data = canvas.toDataURL("image/png");
+    if (normalizeLogo(data)) return data;
+  }
+  return "";
+}
+
+function setLogo(side, logo) {
+  const team = side === "A" ? "teamA" : "teamB";
+  const next = normalizeLogo(logo);
+  if (state[team].logo === next) {
+    render();
+    return;
+  }
+  state[team].logo = next;
+  render();
+  persist();
+}
+
+async function onLogoFile(side, input) {
+  const file = input.files && input.files[0];
+  input.value = "";
+  if (!file || !hydrated) return;
+  try {
+    const logo = await readLogoFile(file);
+    clearError();
+    setLogo(side, logo);
+  } catch (error) {
+    showError(error.message || "画像を読み込めませんでした。");
+  }
+}
+
+for (const side of ["A", "B"]) {
+  ui[`logoFile${side}`].addEventListener("change", (event) => {
+    onLogoFile(side, event.currentTarget);
+  });
+  ui[`logoClear${side}`].addEventListener("click", () => {
+    if (!hydrated) return;
+    clearError();
+    setLogo(side, "");
+  });
+}
+
 document.getElementById("confirmSet").addEventListener("click", confirmSet);
 document.getElementById("resetAll").addEventListener("click", resetAll);
 document.querySelector(".theme-panel").addEventListener("click", (event) => {
@@ -523,25 +640,27 @@ for (const key of Object.keys(textInputs)) {
   });
 }
 
-onValue(ref(db, ".info/connected"), (snap) => {
-  const online = snap.val() === true;
-  ui.status.classList.toggle("online", online);
-  ui.status.classList.toggle("offline", !online);
-  ui.statusText.textContent = online ? "接続中" : "オフライン（復帰後に同期）";
-});
+if (location.protocol !== "file:") {
+  onValue(ref(db, ".info/connected"), (snap) => {
+    const online = snap.val() === true;
+    ui.status.classList.toggle("online", online);
+    ui.status.classList.toggle("offline", !online);
+    ui.statusText.textContent = online ? "接続中" : "オフライン（復帰後に同期）";
+  });
 
-onValue(
-  scoreRef,
-  (snap) => {
-    const raw = snap.val();
-    if (!raw) {
-      seedIfEmpty();
-      return;
+  onValue(
+    scoreRef,
+    (snap) => {
+      const raw = snap.val();
+      if (!raw) {
+        seedIfEmpty();
+        return;
+      }
+      if (pendingWrites > 0 && Number(raw.seq || 0) < state.seq) return;
+      applyServer(raw);
+    },
+    (error) => {
+      showError(formatError(error));
     }
-    if (pendingWrites > 0 && Number(raw.seq || 0) < state.seq) return;
-    applyServer(raw);
-  },
-  (error) => {
-    showError(formatError(error));
-  }
-);
+  );
+}

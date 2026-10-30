@@ -90,9 +90,24 @@ body {
 
 .name-slot {
   min-width: 0;
+  align-self: stretch;
   display: flex;
   align-items: center;
+  gap: 16px;
   overflow: hidden;
+  font-size: 83px;
+}
+
+.logo {
+  display: block;
+  height: 1.1em;
+  width: auto;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.logo[hidden] {
+  display: none;
 }
 
 .slot-b {
