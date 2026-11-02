@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 import {
-  BOARD_THEMES,
   FALLBACK_NAMES,
   SCORE_PATH,
   TEAM_A_COLORS,
@@ -9,6 +8,8 @@ import {
   countSetWins,
   firebaseConfig,
   normalizeState,
+  resolveBoardTheme,
+  resolveTeamColor,
 } from "./config.js";
 
 const app = initializeApp(firebaseConfig);
@@ -98,9 +99,9 @@ function bindLogo(img) {
 }
 
 function applyTheme(state) {
-  const board = BOARD_THEMES[state.boardBgColor] || BOARD_THEMES.dark;
-  const colorA = TEAM_A_COLORS[state.teamAColor] || TEAM_A_COLORS.white;
-  const colorB = TEAM_B_COLORS[state.teamBColor] || TEAM_B_COLORS.white;
+  const board = resolveBoardTheme(state.boardBgColor);
+  const colorA = resolveTeamColor(TEAM_A_COLORS, state.teamAColor);
+  const colorB = resolveTeamColor(TEAM_B_COLORS, state.teamBColor);
   const style = els.board.style;
   style.setProperty("--board-bg", board.background);
   style.setProperty("--ink", board.ink);
@@ -110,8 +111,8 @@ function applyTheme(state) {
   style.setProperty("--serve-on", board.serveOn);
   style.setProperty("--serve-glow", board.serveGlow);
   style.setProperty("--score-shadow", board.scoreShadow);
-  style.setProperty("--color-a", colorA.color);
-  style.setProperty("--color-b", colorB.color);
+  style.setProperty("--color-a", colorA);
+  style.setProperty("--color-b", colorB);
 }
 
 function render(raw) {

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="得点操作">
   <meta name="theme-color" content="#e7ebf0">
   <title>得点板 操作</title>
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/admin.css?v=layout18">
 </head>
 <body>
   <div class="wrap">
@@ -34,38 +34,6 @@
         回戦
         <input id="roundName" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" value="" disabled>
       </label>
-      <h2>表示コメント</h2>
-      <p class="hint">チェックした方のコメントが、得点板の右上にすぐ表示されます。各20文字までです。</p>
-      <div class="comment-row">
-        <label class="comment-radio">
-          <input type="radio" name="activeComment" id="activeCommentA" value="A" checked disabled>
-          <span>表示</span>
-        </label>
-        <label>
-          コメントA
-          <input id="commentA" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" value="" disabled>
-        </label>
-      </div>
-      <div class="comment-row">
-        <label class="comment-radio">
-          <input type="radio" name="activeComment" id="activeCommentB" value="B" disabled>
-          <span>表示</span>
-        </label>
-        <label>
-          コメントB
-          <input id="commentB" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" value="" disabled>
-        </label>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>サーブ権</h2>
-      <div class="serve-switch" role="group" aria-label="サーブ権">
-        <button type="button" id="serveA" class="serve-btn serve-a" aria-pressed="false" disabled>チームA</button>
-        <button type="button" id="serveNone" class="serve-btn" aria-pressed="true" disabled>なし</button>
-        <button type="button" id="serveB" class="serve-btn serve-b" aria-pressed="false" disabled>チームB</button>
-      </div>
-      <p class="hint">+1点で、得点したチームへサーブ権が移ります。−1点では変わりません。手動でも切り替えられます。</p>
     </section>
 
     <div class="teams">
@@ -76,23 +44,22 @@
           <input id="nameA" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="チームA" disabled>
         </label>
         <div class="logo-field">
-          <p class="logo-caption">チームロゴ</p>
+          <p class="logo-caption">ロゴ</p>
           <div class="logo-head">
             <img id="logoPreviewA" class="logo-preview" alt="" hidden>
             <div class="logo-actions">
+              <button type="button" id="logoClearA" class="btn-logo-clear" aria-label="ロゴを消去" disabled>消去</button>
               <label class="file-btn">
-                画像を選択
-                <input id="logoFileA" type="file" accept="image/*" aria-label="チームAのロゴ画像" hidden disabled>
+                端末
+                <input id="logoFileA" type="file" accept="image/*" aria-label="チームAのロゴを端末から選択" hidden disabled>
               </label>
-              <button type="button" id="logoClearA" class="btn-logo-clear" disabled>ロゴを消去</button>
+              <button type="button" id="logoPickA" class="btn-logo-stock" aria-label="ストックから選択" aria-expanded="false" disabled>ストック</button>
             </div>
           </div>
+          <p class="hint logo-hint">選んだ画像は共通ストックに入り、どちらのチームでも使えます。</p>
+          <div id="logoStockA" class="logo-stock" aria-label="共通のロゴストック" hidden></div>
         </div>
-        <div class="score-value" id="scoreA">0</div>
-        <button type="button" id="scoreA-minus" class="btn btn-minus" aria-label="チームAの得点を1減らす" disabled>−1点</button>
-        <button type="button" id="scoreA-plus" class="btn btn-plus btn-xl" aria-label="チームAの得点を1増やす" disabled>+1点</button>
       </section>
-
       <section class="card card-b">
         <h2>チームB <span>右</span></h2>
         <label>
@@ -100,18 +67,87 @@
           <input id="nameB" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="チームB" disabled>
         </label>
         <div class="logo-field">
-          <p class="logo-caption">チームロゴ</p>
+          <p class="logo-caption">ロゴ</p>
           <div class="logo-head">
             <img id="logoPreviewB" class="logo-preview" alt="" hidden>
             <div class="logo-actions">
+              <button type="button" id="logoClearB" class="btn-logo-clear" aria-label="ロゴを消去" disabled>消去</button>
               <label class="file-btn">
-                画像を選択
-                <input id="logoFileB" type="file" accept="image/*" aria-label="チームBのロゴ画像" hidden disabled>
+                端末
+                <input id="logoFileB" type="file" accept="image/*" aria-label="チームBのロゴを端末から選択" hidden disabled>
               </label>
-              <button type="button" id="logoClearB" class="btn-logo-clear" disabled>ロゴを消去</button>
+              <button type="button" id="logoPickB" class="btn-logo-stock" aria-label="ストックから選択" aria-expanded="false" disabled>ストック</button>
             </div>
           </div>
+          <p class="hint logo-hint">選んだ画像は共通ストックに入り、どちらのチームでも使えます。</p>
+          <div id="logoStockB" class="logo-stock" aria-label="共通のロゴストック" hidden></div>
         </div>
+      </section>
+    </div>
+
+    <section class="panel theme-panel">
+      <h2>得点板のテーマ設定</h2>
+      <p class="hint">選んだ色は表示画面にすぐ反映されます。明るい背景では、文字は暗い色になります。</p>
+
+      <label class="color-free">
+        得点板の背景色
+        <input type="color" id="colorBoard" value="#2c323a" aria-label="得点板の背景色" disabled>
+      </label>
+      <label class="color-free">
+        チームAの文字・スコア色
+        <input type="color" id="colorA" value="#ffffff" aria-label="チームAの文字・スコア色" disabled>
+      </label>
+      <label class="color-free">
+        チームBの文字・スコア色
+        <input type="color" id="colorB" value="#ffffff" aria-label="チームBの文字・スコア色" disabled>
+      </label>
+    </section>
+
+    <section class="preview-panel" id="previewPanel">
+      <label class="preview-switch">
+        <input type="checkbox" id="previewToggle">
+        <span>プレビュー表示</span>
+      </label>
+      <iframe id="previewFrame" title="得点板のプレビュー" hidden></iframe>
+    </section>
+
+    <section class="panel">
+      <h2>表示コメント</h2>
+      <p class="hint">文字は「確定」を押したときに保存されます。「ストックから選択」を開いてタップすると、その文言がすぐに表示されます。20文字までです。</p>
+      <div class="comment-row">
+        <label class="comment-field">
+          <span class="comment-caption">コメント <em class="draft-mark" id="draftComment" hidden>未確定</em></span>
+          <input id="comment" maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" value="" disabled>
+        </label>
+        <div class="comment-actions">
+          <button type="button" id="applyComment" class="btn-apply" disabled>確定</button>
+          <button type="button" id="clearComment" class="btn-comment-clear" disabled>消去</button>
+          <button type="button" id="saveCommentStock" class="btn-stock-save" disabled>ストック</button>
+        </div>
+      </div>
+      <button type="button" id="pickCommentStock" class="btn-comment-pick" aria-expanded="false" disabled>ストックから選択 <span id="commentStockCount">0/8</span></button>
+      <div id="commentStocks" class="stock-grid" hidden></div>
+    </section>
+
+    <section class="panel">
+      <h2>サーブ権</h2>
+      <div class="serve-switch" role="group" aria-label="サーブ権">
+        <button type="button" id="serveA" class="serve-btn serve-a" aria-pressed="false" disabled>チームA</button>
+        <button type="button" id="serveNone" class="serve-btn" aria-pressed="true" disabled>なし</button>
+        <button type="button" id="serveB" class="serve-btn serve-b" aria-pressed="false" disabled>チームB</button>
+      </div>
+      <p class="hint">サーブ権があるとき、+1点で得点したチームへ移ります。なしのときは、+1点でもなしのままです。−1点では変わりません。</p>
+    </section>
+
+    <div class="teams">
+      <section class="card card-a">
+        <h2>チームA <span>得点</span></h2>
+        <div class="score-value" id="scoreA">0</div>
+        <button type="button" id="scoreA-minus" class="btn btn-minus" aria-label="チームAの得点を1減らす" disabled>−1点</button>
+        <button type="button" id="scoreA-plus" class="btn btn-plus btn-xl" aria-label="チームAの得点を1増やす" disabled>+1点</button>
+      </section>
+      <section class="card card-b">
+        <h2>チームB <span>得点</span></h2>
         <div class="score-value" id="scoreB">0</div>
         <button type="button" id="scoreB-minus" class="btn btn-minus" aria-label="チームBの得点を1減らす" disabled>−1点</button>
         <button type="button" id="scoreB-plus" class="btn btn-plus btn-xl" aria-label="チームBの得点を1増やす" disabled>+1点</button>
@@ -125,6 +161,9 @@
       </div>
       <button type="button" id="confirmSet" class="btn btn-set" disabled>セット確定（次セットへ）</button>
       <p class="hint">今の得点を履歴に追加し、両チームの得点を0にします。</p>
+    </section>
+
+    <section class="panel">
       <h3>過去セット</h3>
       <p class="hint">左がチームA、右がチームBです。数字を書き換えると表示に反映されます。</p>
       <div id="historyList" class="history-list"></div>
@@ -135,42 +174,10 @@
       <p class="hint">得点、セット履歴、サーブ権を消します。大会名・回戦名・チーム名・ロゴは残ります。</p>
     </section>
 
-    <section class="panel theme-panel">
-      <h2>得点板のテーマ設定</h2>
-      <p class="hint">選んだ色は表示画面にすぐ反映されます。明るい背景では、チームの色を濃い色にすると読みやすくなります。</p>
-
-      <h3>得点板の背景色</h3>
-      <div class="swatches" role="group" aria-label="得点板の背景色">
-        <button type="button" class="swatch" data-theme="boardBgColor" data-value="dark" aria-pressed="true" disabled><span class="chip" aria-hidden="true"></span>ダークグレー</button>
-        <button type="button" class="swatch" data-theme="boardBgColor" data-value="light" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>ホワイト</button>
-        <button type="button" class="swatch" data-theme="boardBgColor" data-value="red" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>レッド</button>
-        <button type="button" class="swatch" data-theme="boardBgColor" data-value="blue" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>ブルー</button>
-        <button type="button" class="swatch" data-theme="boardBgColor" data-value="gold" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>ゴールド</button>
-      </div>
-
-      <h3>チームAの文字・スコア色</h3>
-      <div class="swatches" role="group" aria-label="チームAの文字・スコア色">
-        <button type="button" class="swatch" data-theme="teamAColor" data-value="white" aria-pressed="true" disabled><span class="chip" aria-hidden="true"></span>ホワイト</button>
-        <button type="button" class="swatch" data-theme="teamAColor" data-value="blue" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>ブルー</button>
-        <button type="button" class="swatch" data-theme="teamAColor" data-value="red" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>レッド</button>
-        <button type="button" class="swatch" data-theme="teamAColor" data-value="yellow" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>イエロー</button>
-        <button type="button" class="swatch" data-theme="teamAColor" data-value="black" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>ブラック</button>
-      </div>
-
-      <h3>チームBの文字・スコア色</h3>
-      <div class="swatches" role="group" aria-label="チームBの文字・スコア色">
-        <button type="button" class="swatch" data-theme="teamBColor" data-value="white" aria-pressed="true" disabled><span class="chip" aria-hidden="true"></span>ホワイト</button>
-        <button type="button" class="swatch" data-theme="teamBColor" data-value="orange" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>オレンジ</button>
-        <button type="button" class="swatch" data-theme="teamBColor" data-value="blue" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>ブルー</button>
-        <button type="button" class="swatch" data-theme="teamBColor" data-value="red" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>レッド</button>
-        <button type="button" class="swatch" data-theme="teamBColor" data-value="black" aria-pressed="false" disabled><span class="chip" aria-hidden="true"></span>ブラック</button>
-      </div>
-    </section>
-
     <footer class="footer">
       <a href="index.html" target="_blank" rel="noopener">表示ページを別タブで開く</a>
     </footer>
   </div>
-  <script type="module" src="js/admin.js"></script>
+  <script type="module" src="js/admin.js?v=layout18"></script>
 </body>
 </html>

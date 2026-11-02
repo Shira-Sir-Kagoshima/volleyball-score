@@ -24,7 +24,16 @@ export const LIMITS = {
   roundName: 20,
   teamName: 20,
   comment: 20,
+  commentStocks: 8,
+  logoStocks: 8,
   history: 10,
+};
+
+export const STORAGE_KEYS = {
+  commentStocks: "scoreboard-comment-stocks",
+  logoStocks: "scoreboard-logo-stocks",
+  logoStocksA: "scoreboard-logo-stocks-a",
+  logoStocksB: "scoreboard-logo-stocks-b",
 };
 
 export const FALLBACK_NAMES = {
@@ -123,10 +132,63 @@ const THEME_OPTIONS = {
   teamBColor: TEAM_B_COLORS,
 };
 
+export function normalizeHex(value) {
+  const text = String(value ?? "").trim().toLowerCase();
+  const short = /^#([0-9a-f]{3})$/.exec(text);
+  if (short) {
+    const [r, g, b] = short[1].split("");
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  if (/^#[0-9a-f]{6}$/.test(text)) return text;
+  return "";
+}
+
 export function normalizeThemeValue(key, value) {
   const options = THEME_OPTIONS[key];
   if (options && Object.prototype.hasOwnProperty.call(options, value)) return value;
+  const hex = normalizeHex(value);
+  if (hex) return hex;
   return DEFAULT_THEME[key];
+}
+
+function rgbOf(hex) {
+  return {
+    r: Number.parseInt(hex.slice(1, 3), 16),
+    g: Number.parseInt(hex.slice(3, 5), 16),
+    b: Number.parseInt(hex.slice(5, 7), 16),
+  };
+}
+
+export function resolveBoardTheme(value) {
+  if (BOARD_THEMES[value]) return BOARD_THEMES[value];
+  const hex = normalizeHex(value);
+  if (!hex) return BOARD_THEMES.dark;
+  const { r, g, b } = rgbOf(hex);
+  const light = (r * 299 + g * 587 + b * 114) / 1000 >= 160;
+  return {
+    background: `rgba(${r}, ${g}, ${b}, 0.92)`,
+    ink: light ? "#1a1d23" : "#f4f6f8",
+    line: light ? "rgba(15, 23, 42, 0.16)" : "rgba(255, 255, 255, 0.28)",
+    edge: light ? "inset 0 0 0 1px rgba(15, 23, 42, 0.16)" : "inset 0 0 0 1px rgba(255, 255, 255, 0.18)",
+    serveIdle: light ? "rgba(15, 23, 42, 0.35)" : "rgba(255, 255, 255, 0.45)",
+    serveOn: light ? "#111827" : "#ffffff",
+    serveGlow: light ? "rgba(15, 23, 42, 0.28)" : "rgba(255, 255, 255, 0.75)",
+    scoreShadow: light ? "none" : "0 2px 8px rgba(0, 0, 0, 0.35)",
+    swatch: hex,
+  };
+}
+
+export function resolveTeamColor(palette, value) {
+  if (palette[value]) return palette[value].color;
+  return normalizeHex(value) || "#ffffff";
+}
+
+export function themePickerValue(key, value) {
+  const hex = normalizeHex(value);
+  if (hex) return hex;
+  if (key === "boardBgColor") return (BOARD_THEMES[value] || BOARD_THEMES.dark).swatch;
+  if (key === "teamAColor") return (TEAM_A_COLORS[value] || TEAM_A_COLORS.white).color;
+  return (TEAM_B_COLORS[value] || TEAM_B_COLORS.white).color;
 }
 
 export function clampCount(value) {
@@ -141,6 +203,30 @@ export function cleanText(value, max) {
 
 const LOGO_URL_MAX = 2000;
 const LOGO_DATA_MAX = 180000;
+
+export function normalizeCommentStocks(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  const out = [];
+  for (const item of list) {
+    const text = cleanText(item, LIMITS.comment);
+    if (!text || out.includes(text)) continue;
+    out.push(text);
+    if (out.length >= LIMITS.commentStocks) break;
+  }
+  return out;
+}
+
+export function normalizeLogoStocks(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  const out = [];
+  for (const item of list) {
+    const logo = normalizeLogo(item);
+    if (!logo || out.includes(logo)) continue;
+    out.push(logo);
+    if (out.length >= LIMITS.logoStocks) break;
+  }
+  return out;
+}
 
 export function normalizeLogo(value) {
   const text = String(value ?? "").trim();

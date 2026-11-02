@@ -6,19 +6,20 @@ import {
   set,
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 import {
-  BOARD_THEMES,
   LIMITS,
   SCORE_PATH,
-  TEAM_A_COLORS,
-  TEAM_B_COLORS,
+  STORAGE_KEYS,
   clampCount,
   cleanText,
   countSetWins,
   createDefaultState,
   firebaseConfig,
+  normalizeCommentStocks,
   normalizeLogo,
+  normalizeLogoStocks,
   normalizeState,
   normalizeThemeValue,
+  themePickerValue,
 } from "./config.js";
 
 const app = initializeApp(firebaseConfig);
@@ -31,16 +32,24 @@ const ui = {
   error: document.getElementById("error"),
   tournamentName: document.getElementById("tournamentName"),
   roundName: document.getElementById("roundName"),
-  commentA: document.getElementById("commentA"),
-  commentB: document.getElementById("commentB"),
-  activeCommentA: document.getElementById("activeCommentA"),
-  activeCommentB: document.getElementById("activeCommentB"),
+  comment: document.getElementById("comment"),
+  draftComment: document.getElementById("draftComment"),
+  applyComment: document.getElementById("applyComment"),
+  clearComment: document.getElementById("clearComment"),
+  saveCommentStock: document.getElementById("saveCommentStock"),
+  pickCommentStock: document.getElementById("pickCommentStock"),
+  commentStockCount: document.getElementById("commentStockCount"),
+  commentStocks: document.getElementById("commentStocks"),
+  logoStockA: document.getElementById("logoStockA"),
+  logoStockB: document.getElementById("logoStockB"),
   nameA: document.getElementById("nameA"),
   nameB: document.getElementById("nameB"),
   logoPreviewA: document.getElementById("logoPreviewA"),
   logoPreviewB: document.getElementById("logoPreviewB"),
   logoFileA: document.getElementById("logoFileA"),
   logoFileB: document.getElementById("logoFileB"),
+  logoPickA: document.getElementById("logoPickA"),
+  logoPickB: document.getElementById("logoPickB"),
   logoClearA: document.getElementById("logoClearA"),
   logoClearB: document.getElementById("logoClearB"),
   scoreA: document.getElementById("scoreA"),
@@ -56,8 +65,6 @@ const ui = {
 const textInputs = {
   tournamentName: ui.tournamentName,
   roundName: ui.roundName,
-  commentA: ui.commentA,
-  commentB: ui.commentB,
   teamA: ui.nameA,
   teamB: ui.nameB,
 };
@@ -65,8 +72,6 @@ const textInputs = {
 const textTimers = {
   tournamentName: 0,
   roundName: 0,
-  commentA: 0,
-  commentB: 0,
   teamA: 0,
   teamB: 0,
 };
@@ -74,8 +79,6 @@ const textTimers = {
 const textDirty = {
   tournamentName: false,
   roundName: false,
-  commentA: false,
-  commentB: false,
   teamA: false,
   teamB: false,
 };
@@ -83,11 +86,55 @@ const textDirty = {
 const textLimits = {
   tournamentName: LIMITS.tournamentName,
   roundName: LIMITS.roundName,
-  commentA: LIMITS.comment,
-  commentB: LIMITS.comment,
   teamA: LIMITS.teamName,
   teamB: LIMITS.teamName,
 };
+
+let commentDraftDirty = false;
+
+function readStorage(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    showError("この端末に保存できませんでした。空き容量を確認してください。");
+    return false;
+  }
+}
+
+let commentStocks = normalizeCommentStocks(readStorage(STORAGE_KEYS.commentStocks));
+let commentStockOpen = false;
+let commentEditIndex = -1;
+function loadSharedLogoStocks() {
+  const shared = normalizeLogoStocks(readStorage(STORAGE_KEYS.logoStocks));
+  const legacyA = normalizeLogoStocks(readStorage(STORAGE_KEYS.logoStocksA));
+  const legacyB = normalizeLogoStocks(readStorage(STORAGE_KEYS.logoStocksB));
+  const merged = normalizeLogoStocks([...shared, ...legacyA, ...legacyB]);
+  if (legacyA.length || legacyB.length) {
+    if (writeStorage(STORAGE_KEYS.logoStocks, merged)) {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.logoStocksA);
+        localStorage.removeItem(STORAGE_KEYS.logoStocksB);
+      } catch {
+        /* 古いキーが残っても、次回も同じ内容にまとまる */
+      }
+    }
+  }
+  return merged;
+}
+
+let logoStocks = loadSharedLogoStocks();
+const logoStockOpen = { A: false, B: false };
 
 let state = createDefaultState();
 let hydrated = false;
@@ -118,6 +165,7 @@ function clearError() {
 
 function setEnabled(enabled) {
   document.querySelectorAll("button, input").forEach((el) => {
+    if (el.id === "previewToggle") return;
     el.disabled = !enabled;
   });
 }
@@ -200,6 +248,15 @@ function render() {
     if (input.value !== shown) input.value = shown;
   }
 
+  const input = ui.comment;
+  const shown = onAirComment();
+  if (!commentDraftDirty && document.activeElement !== input && input.value !== shown) {
+    input.value = shown;
+  }
+  ui.draftComment.hidden = !commentDraftDirty;
+  input.closest(".comment-row").classList.toggle("is-draft", commentDraftDirty);
+  syncCommentStockControls();
+
   const serveA = state.teamA.serve === true;
   const serveB = state.teamB.serve === true;
   ui.serveA.classList.toggle("is-on", serveA);
@@ -208,10 +265,6 @@ function render() {
   ui.serveA.setAttribute("aria-pressed", String(serveA));
   ui.serveB.setAttribute("aria-pressed", String(serveB));
   ui.serveNone.setAttribute("aria-pressed", String(!serveA && !serveB));
-
-  const activeComment = state.activeComment === "B" ? "B" : "A";
-  ui.activeCommentA.checked = activeComment === "A";
-  ui.activeCommentB.checked = activeComment === "B";
 
   renderLogos();
 
@@ -236,24 +289,22 @@ function renderLogos() {
     }
     clearButton.disabled = !hydrated || logo === "";
   }
+  markLogoStocks();
 }
 
-function themeSwatch(key, value) {
-  if (key === "boardBgColor") return (BOARD_THEMES[value] || BOARD_THEMES.dark).swatch;
-  if (key === "teamAColor") return (TEAM_A_COLORS[value] || TEAM_A_COLORS.white).color;
-  return (TEAM_B_COLORS[value] || TEAM_B_COLORS.white).color;
-}
+const colorInputs = {
+  boardBgColor: document.getElementById("colorBoard"),
+  teamAColor: document.getElementById("colorA"),
+  teamBColor: document.getElementById("colorB"),
+};
 
 function renderTheme() {
-  document.querySelectorAll("[data-theme]").forEach((button) => {
-    const key = button.dataset.theme;
-    const value = button.dataset.value;
-    const on = state[key] === value;
-    button.classList.toggle("is-on", on);
-    button.setAttribute("aria-pressed", String(on));
-    const chip = button.querySelector(".chip");
-    if (chip) chip.style.background = themeSwatch(key, value);
-  });
+  for (const key of Object.keys(colorInputs)) {
+    const input = colorInputs[key];
+    if (document.activeElement === input) continue;
+    const next = themePickerValue(key, state[key]);
+    if (input.value.toLowerCase() !== next) input.value = next;
+  }
 }
 
 function applyServer(raw) {
@@ -375,7 +426,7 @@ function bump(team, delta) {
   const next = clampCount(state[team].score + delta);
   if (next === state[team].score) return;
   state[team].score = next;
-  if (delta > 0) applyServe(team);
+  if (delta > 0 && (state.teamA.serve || state.teamB.serve)) applyServe(team);
   render();
   persist();
 }
@@ -395,13 +446,319 @@ function commitHistory() {
   historyDirty = false;
 }
 
-function setActiveComment(which) {
+function onAirComment() {
+  return state.activeComment === "B" ? state.commentB : state.commentA;
+}
+
+function writeCommentStocks() {
+  return writeStorage(STORAGE_KEYS.commentStocks, commentStocks);
+}
+
+function writeLogoStocks() {
+  return writeStorage(STORAGE_KEYS.logoStocks, logoStocks);
+}
+
+function syncCommentStockControls() {
+  ui.commentStockCount.textContent = `${commentStocks.length}/${LIMITS.commentStocks}`;
+  ui.saveCommentStock.disabled = !hydrated || commentStocks.length >= LIMITS.commentStocks;
+  ui.clearComment.disabled = !hydrated || (onAirComment() === "" && ui.comment.value.trim() === "");
+  if (commentStocks.length === 0) commentStockOpen = false;
+  ui.commentStocks.hidden = !commentStockOpen;
+  ui.pickCommentStock.classList.toggle("is-on", commentStockOpen);
+  ui.pickCommentStock.setAttribute("aria-expanded", String(commentStockOpen));
+  ui.pickCommentStock.disabled = !hydrated;
+  const active = onAirComment();
+  ui.commentStocks.querySelectorAll(".stock-apply").forEach((button) => {
+    const on = button.dataset.text === active && active !== "";
+    button.classList.toggle("is-current", on);
+    button.setAttribute("aria-pressed", String(on));
+  });
+}
+
+function renderCommentStocks() {
+  const root = ui.commentStocks;
+  root.replaceChildren();
+  if (commentStocks.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "hint stock-empty";
+    empty.textContent = "まだストックはありません。";
+    root.append(empty);
+  }
+
+  commentStocks.forEach((text, index) => {
+    const cell = document.createElement("div");
+    cell.className = "stock-cell";
+    if (commentEditIndex === index) {
+      cell.classList.add("is-editing");
+      const input = document.createElement("input");
+      input.className = "stock-edit";
+      input.maxLength = LIMITS.comment;
+      input.autocomplete = "off";
+      input.enterKeyHint = "done";
+      input.setAttribute("aria-label", `ストック${index + 1}を編集`);
+      input.value = text;
+
+      const save = document.createElement("button");
+      save.type = "button";
+      save.className = "stock-save";
+      save.textContent = "保存";
+
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.className = "stock-cancel";
+      cancel.textContent = "取消";
+
+      const commit = () => {
+        const next = cleanText(input.value, LIMITS.comment);
+        if (!next) {
+          window.alert("コメントを入力してください。");
+          return;
+        }
+        if (commentStocks.some((item, itemIndex) => itemIndex !== index && item === next)) {
+          window.alert("同じコメントはすでにストックされています。");
+          return;
+        }
+        const previous = commentStocks[index];
+        commentStocks[index] = next;
+        if (!writeCommentStocks()) {
+          commentStocks[index] = previous;
+          return;
+        }
+        commentEditIndex = -1;
+        clearError();
+        renderCommentStocks();
+      };
+
+      save.addEventListener("click", commit);
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          commit();
+        }
+      });
+      cancel.addEventListener("click", () => {
+        commentEditIndex = -1;
+        renderCommentStocks();
+      });
+      cell.append(input, save, cancel);
+    } else {
+      const apply = document.createElement("button");
+      apply.type = "button";
+      apply.className = "stock-apply";
+      apply.textContent = text;
+      apply.dataset.text = text;
+      apply.disabled = !hydrated;
+      apply.setAttribute("aria-label", `「${text}」をいまの表示コメントにする`);
+      apply.addEventListener("click", () => applyCommentStock(text));
+
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "stock-icon";
+      edit.textContent = "編集";
+      edit.disabled = !hydrated;
+      edit.setAttribute("aria-label", `「${text}」を編集`);
+      edit.addEventListener("click", () => {
+        commentEditIndex = index;
+        renderCommentStocks();
+        const field = root.querySelector(".stock-edit");
+        if (field) field.focus();
+      });
+
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "stock-icon stock-del";
+      del.textContent = "×";
+      del.disabled = !hydrated;
+      del.setAttribute("aria-label", `「${text}」をストックから削除`);
+      del.addEventListener("click", () => deleteCommentStock(index));
+      cell.append(apply, edit, del);
+    }
+    root.append(cell);
+  });
+  syncCommentStockControls();
+}
+
+function publishComment(text) {
   if (!hydrated) return;
-  const next = which === "B" ? "B" : "A";
-  if (state.activeComment === next) return;
-  state.activeComment = next;
+  const next = cleanText(text, LIMITS.comment);
+  ui.comment.value = next;
+  commentDraftDirty = false;
+  if (onAirComment() === next) {
+    render();
+    return;
+  }
+  state.commentA = next;
+  state.commentB = "";
+  state.activeComment = "A";
   render();
   persist();
+}
+
+function applyCommentStock(text) {
+  commentStockOpen = false;
+  publishComment(text);
+  syncCommentStockControls();
+}
+
+function toggleCommentStock() {
+  if (!hydrated) return;
+  if (!commentStockOpen && commentStocks.length === 0) {
+    window.alert("ストックがありません。コメントを入力して「ストック」を押すと追加されます。");
+    return;
+  }
+  commentStockOpen = !commentStockOpen;
+  syncCommentStockControls();
+}
+
+function saveActiveCommentToStock() {
+  if (!hydrated) return;
+  if (commentStocks.length >= LIMITS.commentStocks) {
+    window.alert(`コメントストックは${LIMITS.commentStocks}個までです。不要なものを削除してください。`);
+    return;
+  }
+  const text = cleanText(ui.comment.value, LIMITS.comment);
+  if (!text) {
+    window.alert("コメント欄に、保存したい文字を入力してください。");
+    return;
+  }
+  if (commentStocks.includes(text)) {
+    window.alert("同じコメントはすでにストックされています。");
+    return;
+  }
+  commentStocks.push(text);
+  if (!writeCommentStocks()) {
+    commentStocks.pop();
+    return;
+  }
+  clearError();
+  commentStockOpen = true;
+  renderCommentStocks();
+}
+
+function deleteCommentStock(index) {
+  const text = commentStocks[index];
+  if (text == null) return;
+  const ok = window.confirm(`「${text}」をストックから削除しますか？`);
+  if (!ok) return;
+  commentStocks.splice(index, 1);
+  if (!writeCommentStocks()) {
+    commentStocks.splice(index, 0, text);
+    return;
+  }
+  if (commentEditIndex === index) commentEditIndex = -1;
+  else if (commentEditIndex > index) commentEditIndex -= 1;
+  renderCommentStocks();
+}
+
+function markLogoStocks() {
+  for (const side of ["A", "B"]) {
+    const current = state[side === "A" ? "teamA" : "teamB"].logo || "";
+    ui[`logoStock${side}`].querySelectorAll(".logo-stock-pick").forEach((button) => {
+      const index = Number(button.dataset.logoIndex);
+      const on = logoStocks[index] === current && current !== "";
+      button.classList.toggle("is-current", on);
+      button.setAttribute("aria-pressed", String(on));
+    });
+  }
+}
+
+function renderLogoStocks() {
+  for (const side of ["A", "B"]) {
+    const root = ui[`logoStock${side}`];
+    const current = state[side === "A" ? "teamA" : "teamB"].logo || "";
+    root.replaceChildren();
+    logoStocks.forEach((logo, index) => {
+      const item = document.createElement("div");
+      item.className = "logo-stock-item";
+
+      const pick = document.createElement("button");
+      pick.type = "button";
+      pick.className = "logo-stock-pick";
+      pick.disabled = !hydrated;
+      pick.dataset.logoIndex = String(index);
+      const on = logo === current && current !== "";
+      pick.classList.toggle("is-current", on);
+      pick.setAttribute("aria-pressed", String(on));
+      pick.setAttribute("aria-label", `ストック${index + 1}をチーム${side}に配信`);
+
+      const img = document.createElement("img");
+      img.alt = "";
+      img.src = logo;
+      pick.append(img);
+      pick.addEventListener("click", () => {
+        if (!hydrated) return;
+        clearError();
+        logoStockOpen[side] = false;
+        setLogo(side, logo);
+        syncLogoStockPanel(side);
+      });
+
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "logo-stock-del";
+      del.disabled = !hydrated;
+      del.textContent = "ストック削除";
+      del.setAttribute("aria-label", `ストック${index + 1}を削除`);
+      del.addEventListener("click", () => deleteLogoStock(index));
+
+      item.append(pick, del);
+      root.append(item);
+    });
+    syncLogoStockPanel(side);
+  }
+}
+
+function syncLogoStockPanel(side) {
+  if (logoStocks.length === 0) logoStockOpen[side] = false;
+  const open = logoStockOpen[side];
+  ui[`logoStock${side}`].hidden = !open;
+  const button = ui[`logoPick${side}`];
+  button.classList.toggle("is-on", open);
+  button.setAttribute("aria-expanded", String(open));
+}
+
+function toggleLogoStock(side) {
+  if (!hydrated) return;
+  if (!logoStockOpen[side] && logoStocks.length === 0) {
+    window.alert("ストックがありません。端末から選択すると追加されます。");
+    return;
+  }
+  logoStockOpen[side] = !logoStockOpen[side];
+  syncLogoStockPanel(side);
+}
+
+function deleteLogoStock(index) {
+  const logo = logoStocks[index];
+  if (!logo) return;
+  const ok = window.confirm("このロゴを共通ストックから削除しますか？\nいま配信中のロゴはそのまま残ります。");
+  if (!ok) return;
+  logoStocks.splice(index, 1);
+  if (!writeLogoStocks()) {
+    logoStocks.splice(index, 0, logo);
+    return;
+  }
+  renderLogoStocks();
+}
+
+function addLogoStock(side, logo) {
+  if (logoStocks.includes(logo)) {
+    window.alert("この画像はすでにストックされています。");
+    logoStockOpen[side] = true;
+    syncLogoStockPanel(side);
+    return;
+  }
+  if (logoStocks.length >= LIMITS.logoStocks) {
+    window.alert(`ロゴのストックは${LIMITS.logoStocks}個までです。不要な画像を削除してください。`);
+    return;
+  }
+  logoStocks.push(logo);
+  if (!writeLogoStocks()) {
+    logoStocks.pop();
+    return;
+  }
+  clearError();
+  logoStockOpen[side] = true;
+  renderLogoStocks();
 }
 
 function setServe(which) {
@@ -478,12 +835,6 @@ document.getElementById("scoreB-minus").addEventListener("click", () => bump("te
 ui.serveA.addEventListener("click", () => setServe("teamA"));
 ui.serveNone.addEventListener("click", () => setServe("none"));
 ui.serveB.addEventListener("click", () => setServe("teamB"));
-ui.activeCommentA.addEventListener("change", () => {
-  if (ui.activeCommentA.checked) setActiveComment("A");
-});
-ui.activeCommentB.addEventListener("change", () => {
-  if (ui.activeCommentB.checked) setActiveComment("B");
-});
 function readLogoFile(file) {
   if (!file || !String(file.type || "").startsWith("image/")) {
     return Promise.reject(new Error("画像ファイルを選んでください。"));
@@ -555,8 +906,7 @@ async function onLogoFile(side, input) {
   if (!file || !hydrated) return;
   try {
     const logo = await readLogoFile(file);
-    clearError();
-    setLogo(side, logo);
+    addLogoStock(side, logo);
   } catch (error) {
     showError(error.message || "画像を読み込めませんでした。");
   }
@@ -566,6 +916,7 @@ for (const side of ["A", "B"]) {
   ui[`logoFile${side}`].addEventListener("change", (event) => {
     onLogoFile(side, event.currentTarget);
   });
+  ui[`logoPick${side}`].addEventListener("click", () => toggleLogoStock(side));
   ui[`logoClear${side}`].addEventListener("click", () => {
     if (!hydrated) return;
     clearError();
@@ -575,11 +926,38 @@ for (const side of ["A", "B"]) {
 
 document.getElementById("confirmSet").addEventListener("click", confirmSet);
 document.getElementById("resetAll").addEventListener("click", resetAll);
-document.querySelector(".theme-panel").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-theme]");
-  if (!button) return;
-  setTheme(button.dataset.theme, button.dataset.value);
-});
+
+for (const [key, input] of Object.entries(colorInputs)) {
+  input.addEventListener("change", () => setTheme(key, input.value));
+}
+
+const previewToggle = document.getElementById("previewToggle");
+const previewFrame = document.getElementById("previewFrame");
+
+function setPreview(on) {
+  previewToggle.checked = on;
+  previewFrame.hidden = !on;
+  if (on) {
+    if (!previewFrame.getAttribute("src")) previewFrame.src = "index.html";
+  } else {
+    previewFrame.removeAttribute("src");
+  }
+  try {
+    localStorage.setItem("scoreboard-preview", on ? "1" : "0");
+  } catch {
+    /* 保存できない環境では、この画面を開いているあいだだけ切り替える */
+  }
+}
+
+previewToggle.addEventListener("change", () => setPreview(previewToggle.checked));
+
+let previewOn = false;
+try {
+  previewOn = localStorage.getItem("scoreboard-preview") === "1";
+} catch {
+  previewOn = false;
+}
+setPreview(previewOn);
 
 ui.historyList.addEventListener("input", (event) => {
   const input = event.target;
@@ -611,8 +989,7 @@ ui.historyList.addEventListener("click", (event) => {
 const composing = {
   tournamentName: false,
   roundName: false,
-  commentA: false,
-  commentB: false,
+  comment: false,
   teamA: false,
   teamB: false,
 };
@@ -639,6 +1016,36 @@ for (const key of Object.keys(textInputs)) {
     if (event.key === "Enter") event.currentTarget.blur();
   });
 }
+
+const commentInput = ui.comment;
+commentInput.addEventListener("compositionstart", () => {
+  composing.comment = true;
+});
+commentInput.addEventListener("compositionend", () => {
+  composing.comment = false;
+  commentDraftDirty = commentInput.value !== onAirComment();
+  render();
+});
+commentInput.addEventListener("input", () => {
+  commentDraftDirty = commentInput.value !== onAirComment();
+  ui.draftComment.hidden = !commentDraftDirty;
+  commentInput.closest(".comment-row").classList.toggle("is-draft", commentDraftDirty);
+  ui.clearComment.disabled = !hydrated || (onAirComment() === "" && commentInput.value.trim() === "");
+});
+commentInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !composing.comment) {
+    event.preventDefault();
+    publishComment(commentInput.value);
+  }
+});
+
+ui.applyComment.addEventListener("click", () => publishComment(ui.comment.value));
+ui.clearComment.addEventListener("click", () => publishComment(""));
+ui.saveCommentStock.addEventListener("click", saveActiveCommentToStock);
+ui.pickCommentStock.addEventListener("click", toggleCommentStock);
+
+renderCommentStocks();
+renderLogoStocks();
 
 if (location.protocol !== "file:") {
   onValue(ref(db, ".info/connected"), (snap) => {
