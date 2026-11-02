@@ -375,24 +375,28 @@ input:focus {
 }
 
 .logo-actions .file-btn,
-.logo-actions .btn-logo-stock,
 .logo-actions .btn-logo-clear {
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 0;
-  padding: 4px 0;
+  padding: 4px 4px;
   font-size: 12px;
   white-space: nowrap;
 }
 
-.logo-actions .btn-logo-clear,
-.logo-actions .file-btn {
-  flex: 2 1 0;
+.logo-actions .btn-logo-clear {
+  flex: 0 0 auto;
 }
 
-.logo-actions .btn-logo-stock {
-  flex: 3 1 0;
+.logo-actions .file-btn {
+  flex: 1 1 auto;
+}
+
+.logo-field > .btn-logo-stock {
+  width: 100%;
+  min-height: 36px;
+  margin-top: 6px;
 }
 
 .logo-preview {
@@ -842,11 +846,11 @@ label.color-free {
 .preview-panel iframe {
   display: block;
   width: 100%;
-  height: 160px;
+  height: 140px;
   margin-top: 8px;
   border: 0;
   border-radius: 12px;
-  background: #0b0f14;
+  background: transparent;
 }
 
 .preview-panel iframe[hidden] {

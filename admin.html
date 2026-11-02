@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="得点操作">
   <meta name="theme-color" content="#e7ebf0">
   <title>得点板 操作</title>
-  <link rel="stylesheet" href="css/admin.css?v=layout18">
+  <link rel="stylesheet" href="css/admin.css?v=layout24">
 </head>
 <body>
   <div class="wrap">
@@ -50,12 +50,12 @@
             <div class="logo-actions">
               <button type="button" id="logoClearA" class="btn-logo-clear" aria-label="ロゴを消去" disabled>消去</button>
               <label class="file-btn">
-                端末
-                <input id="logoFileA" type="file" accept="image/*" aria-label="チームAのロゴを端末から選択" hidden disabled>
+                端末から
+                <input id="logoFileA" type="file" accept="image/*" aria-label="チームAのロゴを端末から" hidden disabled>
               </label>
-              <button type="button" id="logoPickA" class="btn-logo-stock" aria-label="ストックから選択" aria-expanded="false" disabled>ストック</button>
             </div>
           </div>
+          <button type="button" id="logoPickA" class="btn-logo-stock" aria-expanded="false" disabled>ストックから選択</button>
           <p class="hint logo-hint">選んだ画像は共通ストックに入り、どちらのチームでも使えます。</p>
           <div id="logoStockA" class="logo-stock" aria-label="共通のロゴストック" hidden></div>
         </div>
@@ -73,12 +73,12 @@
             <div class="logo-actions">
               <button type="button" id="logoClearB" class="btn-logo-clear" aria-label="ロゴを消去" disabled>消去</button>
               <label class="file-btn">
-                端末
-                <input id="logoFileB" type="file" accept="image/*" aria-label="チームBのロゴを端末から選択" hidden disabled>
+                端末から
+                <input id="logoFileB" type="file" accept="image/*" aria-label="チームBのロゴを端末から" hidden disabled>
               </label>
-              <button type="button" id="logoPickB" class="btn-logo-stock" aria-label="ストックから選択" aria-expanded="false" disabled>ストック</button>
             </div>
           </div>
+          <button type="button" id="logoPickB" class="btn-logo-stock" aria-expanded="false" disabled>ストックから選択</button>
           <p class="hint logo-hint">選んだ画像は共通ストックに入り、どちらのチームでも使えます。</p>
           <div id="logoStockB" class="logo-stock" aria-label="共通のロゴストック" hidden></div>
         </div>
@@ -178,6 +178,6 @@
       <a href="index.html" target="_blank" rel="noopener">表示ページを別タブで開く</a>
     </footer>
   </div>
-  <script type="module" src="js/admin.js?v=layout18"></script>
+  <script type="module" src="js/admin.js?v=layout24"></script>
 </body>
 </html>

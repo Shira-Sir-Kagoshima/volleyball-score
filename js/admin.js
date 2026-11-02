@@ -290,6 +290,7 @@ function renderLogos() {
     clearButton.disabled = !hydrated || logo === "";
   }
   markLogoStocks();
+  rememberDisplayedLogos();
 }
 
 const colorInputs = {
@@ -650,6 +651,45 @@ function deleteCommentStock(index) {
   renderCommentStocks();
 }
 
+function rememberDisplayedLogos() {
+  const live = [];
+  for (const logo of [state.teamA.logo, state.teamB.logo]) {
+    const next = normalizeLogo(logo);
+    if (next && !live.includes(next)) live.push(next);
+  }
+  const missing = live.filter((logo) => !logoStocks.includes(logo) && !logoStockRememberFailed.has(logo));
+  if (missing.length === 0) return;
+
+  const next = logoStocks.slice();
+  const added = [];
+  for (const logo of missing) {
+    if (next.includes(logo)) continue;
+    while (next.length >= LIMITS.logoStocks) {
+      const drop = next.findIndex((item) => !live.includes(item));
+      if (drop < 0) break;
+      next.splice(drop, 1);
+    }
+    if (next.length >= LIMITS.logoStocks) continue;
+    next.push(logo);
+    added.push(logo);
+  }
+  if (added.length === 0) {
+    for (const logo of missing) logoStockRememberFailed.add(logo);
+    return;
+  }
+
+  const previous = logoStocks;
+  logoStocks = next;
+  if (!writeLogoStocks()) {
+    logoStocks = previous;
+    for (const logo of added) logoStockRememberFailed.add(logo);
+    return;
+  }
+  renderLogoStocks();
+}
+
+const logoStockRememberFailed = new Set();
+
 function markLogoStocks() {
   for (const side of ["A", "B"]) {
     const current = state[side === "A" ? "teamA" : "teamB"].logo || "";
@@ -933,14 +973,36 @@ for (const [key, input] of Object.entries(colorInputs)) {
 
 const previewToggle = document.getElementById("previewToggle");
 const previewFrame = document.getElementById("previewFrame");
+let previewObserver = null;
+
+function fitPreviewFrame() {
+  if (previewFrame.hidden) return;
+  const doc = previewFrame.contentDocument;
+  if (!doc?.body) return;
+  const height = Math.ceil(doc.body.getBoundingClientRect().height);
+  if (height > 0) previewFrame.style.height = `${height}px`;
+}
+
+function watchPreviewFrame() {
+  fitPreviewFrame();
+  const doc = previewFrame.contentDocument;
+  if (!doc?.body) return;
+  previewObserver?.disconnect();
+  previewObserver = new ResizeObserver(() => fitPreviewFrame());
+  previewObserver.observe(doc.body);
+}
 
 function setPreview(on) {
   previewToggle.checked = on;
   previewFrame.hidden = !on;
   if (on) {
     if (!previewFrame.getAttribute("src")) previewFrame.src = "index.html";
+    else fitPreviewFrame();
   } else {
+    previewObserver?.disconnect();
+    previewObserver = null;
     previewFrame.removeAttribute("src");
+    previewFrame.style.height = "";
   }
   try {
     localStorage.setItem("scoreboard-preview", on ? "1" : "0");
@@ -949,6 +1011,7 @@ function setPreview(on) {
   }
 }
 
+previewFrame.addEventListener("load", watchPreviewFrame);
 previewToggle.addEventListener("change", () => setPreview(previewToggle.checked));
 
 let previewOn = false;
